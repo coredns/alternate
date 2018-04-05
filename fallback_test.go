@@ -20,8 +20,16 @@ import (
 // It returns a stub Handler that returns the rcode and err specified when invoked.
 func stubNextHandler(rcode int, err error) test.Handler {
 	return test.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
-		w.WriteMsg(&dns.Msg{})
-		return rcode, err
+		return_code := rcode
+		if rcode != dns.RcodeServerFailure {
+			dns_msg := dns.Msg{}
+			dns_msg.MsgHdr.Rcode = rcode
+			return_code = dns.RcodeSuccess
+			w.WriteMsg(&dns_msg)
+		} else {
+			w.WriteMsg(nil)
+		}
+		return return_code, err
 	})
 }
 

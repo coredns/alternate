@@ -43,22 +43,27 @@ func New(trace plugin.Handler) (f *Fallback) {
 func (f Fallback) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 	nw := nonwriter.New(w)
 	rcode, err := plugin.NextOrFailure(f.Name(), f.Next, ctx, nw, r)
-	if err != nil {
-		return rcode, err
+
+	//By default the rules_index is equal rcode, so in such way we handle the case
+	//when rcode is SERVFAIL and nw.Msg is nil, otherwise we use nw.Msg.Rcode
+	//because, for example, for the following cases like NXDOMAIN, REFUSED the rcode is 0 (returned by proxy)
+	//A proxy doesn't return 0 only in case SERVFAIL
+	rules_index := rcode
+	if nw.Msg != nil {
+		rules_index = nw.Msg.Rcode
 	}
-	// PROXY ALWAYS RETURN 0
-	if rcode == 0 {
-		rcode = nw.Msg.Rcode
-	}
-	if u, ok := f.rules[rcode]; ok {
+
+	if u, ok := f.rules[rules_index]; ok {
 		p := f.proxy.New(f.trace, u)
 		if p == nil {
-			return rcode, fmt.Errorf("cannot create fallback proxy")
+			return dns.RcodeServerFailure, fmt.Errorf("cannot create fallback proxy")
 		}
 		return p.ServeDNS(ctx, w, r)
 	}
-	w.WriteMsg(nw.Msg)
-	return rcode, nil
+	if nw.Msg != nil {
+		w.WriteMsg(nw.Msg)
+	}
+	return rcode, err
 }
 
 // Name implements the Handler interface.
