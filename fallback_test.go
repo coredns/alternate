@@ -126,7 +126,7 @@ func TestFallback(t *testing.T) {
 			handler.Next = stubNextHandler(tc.rcode, nil)
 			// add dummyUpstreams to upstream map according to the rcode field
 			for _, u := range dummyUpstreams {
-				handler.rules[u.rcode] = u
+				handler.rules[u.rcode] = rule{original: false, proxyUpstream: u}
 			}
 			proxyCreator := &testProxyCreator{t: t, expectedUpstream: tc.expectedUpstream}
 			handler.proxy = proxyCreator
@@ -158,7 +158,7 @@ func TestFallbackNotCalled(t *testing.T) {
 	handler := New(nil)
 
 	// fallback only handle REFUSED
-	handler.rules[dummyRefusedUpstream.rcode] = dummyRefusedUpstream
+	handler.rules[dummyRefusedUpstream.rcode] = rule{original: false, proxyUpstream: dummyRefusedUpstream}
 
 	proxyCreator := &testProxyCreator{t: t, expectedUpstream: nil}
 	handler.proxy = proxyCreator
@@ -194,7 +194,7 @@ func TestFallbackCalledMany(t *testing.T) {
 	handler := New(nil)
 	handler.Next = stubNextHandler(dns.RcodeRefused, nil)
 	// fallback only handle REFUSED
-	handler.rules[dummyRefusedUpstream.rcode] = dummyRefusedUpstream
+	handler.rules[dummyRefusedUpstream.rcode] = rule{original: false, proxyUpstream: dummyRefusedUpstream}
 	proxyCreator := &testProxyCreator{t: t, expectedUpstream: dummyRefusedUpstream}
 	handler.proxy = proxyCreator
 
