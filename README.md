@@ -17,7 +17,7 @@ the desired upstreams became unavailable.
 
 ```
 {
-    fallback [original] RCODE PROXY_PARAMS
+    fallback [ORIGINAL] RCODE PROXY_PARAMS
 }
 ```
 
