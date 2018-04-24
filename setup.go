@@ -31,7 +31,7 @@ func setup(c *caddy.Controller) error {
 		if !c.Dispenser.Args(&rcode) {
 			return c.ArgErr()
 		}
-		if rcode == "ORIGINAL" {
+		if rcode == "original" {
 			original = true
 			// Reread parameter is not rcode. Get it again.
 			if !c.Dispenser.Args(&rcode) {

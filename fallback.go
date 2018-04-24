@@ -19,7 +19,7 @@ type Fallback struct {
 	Next     plugin.Handler
 	trace    plugin.Handler
 	rules    map[int]rule
-	original bool // At least one rule has "ORIGINAL" flag
+	original bool // At least one rule has "original" flag
 	proxy    proxyCreator
 }
 

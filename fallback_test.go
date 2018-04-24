@@ -176,14 +176,14 @@ func TestFallback(t *testing.T) {
 			if proxyCreator.called != 1 {
 				t.Errorf("Expect proxy creator to be called once, but got '%d", proxyCreator.called)
 			}
-			// Ensure that if ORIGINAL is defined then Edns Record added by next
+			// Ensure that if original is defined then Edns Record added by next
 			// plugin is not sent to request
 			edns0IsSet := (proxyCreator.handler.lastRequest.IsEdns0() == nil)
 			if tc.original && !edns0IsSet {
-				t.Errorf("Expect that if ORIGINAL is set then edns record is not proxied")
+				t.Errorf("Expect that if original is set then edns record is not proxied")
 			}
 			if !tc.original && edns0IsSet {
-				t.Errorf("Expect that if ORIGINAL is not set then edns record added by next plugin is proxied")
+				t.Errorf("Expect that if original is not set then edns record added by next plugin is proxied")
 			}
 		})
 	}

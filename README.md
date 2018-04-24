@@ -17,11 +17,11 @@ the desired upstreams became unavailable.
 
 ```
 {
-    fallback [ORIGINAL] RCODE PROXY_PARAMS
+    fallback [original] RCODE PROXY_PARAMS
 }
 ```
 
-* **ORIGINAL** is optional flag. If it is set then fallback uses original request instead of potentially changed by other plugins
+* **original** is optional flag. If it is set then fallback uses original request instead of potentially changed by other plugins
 * **RCODE** is the string representation of the error response code. The complete list of valid rcode strings are defined as `RcodeToString` in <https://github.com/miekg/dns/blob/master/msg.go>, examples of which are `SERVFAIL`, `NXDOMAIN` and `REFUSED`.
 * **PROXY_PARAMS** accepts the same parameters as the *proxy* plugin
 <https://coredns.io/plugins/proxy>.
@@ -42,13 +42,13 @@ The following specifies that all requests are proxied to 8.8.8.8. If the respons
 ```
 ### Fallback with original request used
 
-The following specify that `ORIGINAL` query will be proxied to 192.168.1.1:53 if 8.8.8.8 response is `NXDOMAIN`. `ORIGINAL` means no changes from next plugins on request. With no `ORIGINAL` flag fallback will proxy request with EDNS0 option (set by rewrite).
+The following specify that `original` query will be proxied to 192.168.1.1:53 if 8.8.8.8 response is `NXDOMAIN`. `original` means no changes from next plugins on request. With no `original` flag fallback will proxy request with EDNS0 option (set by rewrite).
 
 ```
 . {
 	proxy . 8.8.8.8
     rewrite edns0 local set 0xffee 0x61626364
-	fallback ORIGINAL NXDOMAIN . 192.168.1.1:53
+	fallback original NXDOMAIN . 192.168.1.1:53
 	log
 }
 
@@ -63,7 +63,7 @@ Multiple fallbacks can be specified, as long as they serve unique error response
     proxy . 8.8.8.8
     fallback NXDOMAIN . 192.168.1.1:53
     fallback REFUSED . 192.168.100.1:53
-    fallback ORIGINAL SERVFAIL . 192.168.100.1:53
+    fallback original SERVFAIL . 192.168.100.1:53
     log
 }
 

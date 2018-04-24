@@ -25,7 +25,7 @@ func TestSetupFallback(t *testing.T) {
 			config: `fallback NXDOMAIN . 192.168.1.1:53`,
 		},
 		{
-			config: `fallback ORIGINAL NXDOMAIN . 192.168.1.1:53`,
+			config: `fallback original NXDOMAIN . 192.168.1.1:53`,
 		},
 		{
 			config:        `fallback REFUSE . 192.168.1.1:53`,
@@ -40,7 +40,7 @@ func TestSetupFallback(t *testing.T) {
 			expectedError: `is not a valid rcode`,
 		},
 		{
-			config:        `fallback ORIGINAL NODOMAIN . 192.168.1.1:53`,
+			config:        `fallback original NODOMAIN . 192.168.1.1:53`,
 			expectedError: `is not a valid rcode`,
 		},
 		{
@@ -60,7 +60,7 @@ func TestSetupFallback(t *testing.T) {
 		},
 		{
 			config: `fallback REFUSED . 192.168.1.1:53
-					 fallback ORIGINAL REFUSED . 192.168.1.2:53`,
+					 fallback original REFUSED . 192.168.1.2:53`,
 			expectedError: `specified more than once`,
 		},
 	}
