@@ -57,6 +57,9 @@ func (c *testProxyCreator) New(trace plugin.Handler, upstream proxy.Upstream) pl
 		return nil
 	}
 
+	if c.handler == nil {
+		c.handler = &dummyHandler{}
+	}
 	return c.handler
 }
 
@@ -153,8 +156,7 @@ func TestFallback(t *testing.T) {
 			}
 			proxyCreator := &testProxyCreator{
 				t:                t,
-				expectedUpstream: tc.expectedUpstream,
-				handler:          &dummyHandler{}}
+				expectedUpstream: tc.expectedUpstream}
 			handler.proxy = proxyCreator
 
 			ctx := context.TODO()
@@ -195,7 +197,7 @@ func TestFallbackNotCalled(t *testing.T) {
 	// fallback only handle REFUSED
 	handler.rules[dummyRefusedUpstream.rcode] = rule{original: false, proxyUpstream: dummyRefusedUpstream}
 
-	proxyCreator := &testProxyCreator{t: t, expectedUpstream: nil, handler: &dummyHandler{}}
+	proxyCreator := &testProxyCreator{t: t, expectedUpstream: nil}
 	handler.proxy = proxyCreator
 
 	ctx := context.TODO()
@@ -230,7 +232,7 @@ func TestFallbackCalledMany(t *testing.T) {
 	handler.Next = stubNextHandler(dns.RcodeRefused, nil)
 	// fallback only handle REFUSED
 	handler.rules[dummyRefusedUpstream.rcode] = rule{original: false, proxyUpstream: dummyRefusedUpstream}
-	proxyCreator := &testProxyCreator{t: t, expectedUpstream: dummyRefusedUpstream, handler: &dummyHandler{}}
+	proxyCreator := &testProxyCreator{t: t, expectedUpstream: dummyRefusedUpstream}
 	handler.proxy = proxyCreator
 
 	ctx := context.TODO()
