@@ -16,16 +16,20 @@ import (
 	"github.com/miekg/dns"
 )
 
-// stubNextHandler is used to simulate a proxy plugin.
+// stubNextHandler is used to simulate a rewrite and proxy plugin.
 // It returns a stub Handler that returns the rcode and err specified when invoked.
+// Also it adds edns0 option to given request.
 func stubNextHandler(rcode int, err error) test.Handler {
 	return test.HandlerFunc(func(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
 		return_code := rcode
+		if r == nil {
+			r = &dns.Msg{}
+		}
+		r.SetEdns0(4096, false)
 		if rcode != dns.RcodeServerFailure {
-			dns_msg := dns.Msg{}
-			dns_msg.MsgHdr.Rcode = rcode
+			r.MsgHdr.Rcode = rcode
 			return_code = dns.RcodeSuccess
-			w.WriteMsg(&dns_msg)
+			w.WriteMsg(r)
 		} else {
 			w.WriteMsg(nil)
 		}
@@ -39,6 +43,7 @@ type testProxyCreator struct {
 	expectedUpstream proxy.Upstream
 	called           int
 	t                *testing.T
+	handler          *dummyHandler
 }
 
 func (c *testProxyCreator) New(trace plugin.Handler, upstream proxy.Upstream) plugin.Handler {
@@ -52,7 +57,22 @@ func (c *testProxyCreator) New(trace plugin.Handler, upstream proxy.Upstream) pl
 		return nil
 	}
 
+	if c.handler != nil {
+		return c.handler
+	}
 	return &proxy.Proxy{Trace: trace, Upstreams: &[]proxy.Upstream{upstream}}
+}
+
+// dummyHandler implements the plugin.Handler interface
+// Saves last dns.Msg passed to serveDNS() call
+type dummyHandler struct {
+	lastRequest *dns.Msg
+}
+
+func (h *dummyHandler) Name() string { return "dummyHandler" }
+func (h *dummyHandler) ServeDNS(c context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	h.lastRequest = r
+	return 0, nil
 }
 
 // dummyUpstream implements the proxy.Upstream interface
@@ -91,6 +111,7 @@ func (e dummyExchanger) OnShutdown(p *proxy.Proxy) error { return nil }
 type fallbackTestCase struct {
 	rcode            int            // rcode to be returned by the stub Handler
 	expectedUpstream proxy.Upstream // this upstream is expected when testProxyCreator is called
+	original         bool           // fallback block is configured to use original query
 }
 
 func TestFallback(t *testing.T) {
@@ -108,27 +129,35 @@ func TestFallback(t *testing.T) {
 		{
 			rcode:            dns.RcodeRefused,
 			expectedUpstream: dummyRefusedUpstream,
+			original:         false,
 		},
 		{
 			rcode:            dns.RcodeServerFailure,
 			expectedUpstream: dummyServeFailureUpstream,
+			original:         false,
 		},
 		{
 			rcode:            dns.RcodeNameError,
 			expectedUpstream: dummyNxDomainUpstream,
+			original:         true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(fmt.Sprintf("rcode = %d", tc.rcode), func(t *testing.T) {
 			handler := New(nil)
+			// One of rules has "original" flag set
+			handler.original = true
 			// create stub handler to return the test rcode
 			handler.Next = stubNextHandler(tc.rcode, nil)
 			// add dummyUpstreams to upstream map according to the rcode field
 			for _, u := range dummyUpstreams {
-				handler.rules[u.rcode] = rule{original: false, proxyUpstream: u}
+				handler.rules[u.rcode] = rule{original: tc.original, proxyUpstream: u}
 			}
-			proxyCreator := &testProxyCreator{t: t, expectedUpstream: tc.expectedUpstream}
+			proxyCreator := &testProxyCreator{
+				t:                t,
+				expectedUpstream: tc.expectedUpstream,
+				handler:          &dummyHandler{}}
 			handler.proxy = proxyCreator
 
 			ctx := context.TODO()
@@ -146,6 +175,15 @@ func TestFallback(t *testing.T) {
 			// Ensure that the proxyCreator is called once
 			if proxyCreator.called != 1 {
 				t.Errorf("Expect proxy creator to be called once, but got '%d", proxyCreator.called)
+			}
+			// Ensure that if ORIGINAL is defined then Edns Record added by next
+			// plugin is not sent to request
+			edns0IsSet := (proxyCreator.handler.lastRequest.IsEdns0() == nil)
+			if tc.original && !edns0IsSet {
+				t.Errorf("Expect that if ORIGINAL is set then edns record is not proxied")
+			}
+			if !tc.original && edns0IsSet {
+				t.Errorf("Expect that if ORIGINAL is not set then edns record added by next plugin is proxied")
 			}
 		})
 	}
