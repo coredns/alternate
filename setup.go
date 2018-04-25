@@ -24,9 +24,19 @@ func setup(c *caddy.Controller) error {
 	f := New(t)
 
 	for c.Next() {
-		var rcode string
+		var (
+			original bool
+			rcode    string
+		)
 		if !c.Dispenser.Args(&rcode) {
 			return c.ArgErr()
+		}
+		if rcode == "original" {
+			original = true
+			// Reread parameter is not rcode. Get it again.
+			if !c.Dispenser.Args(&rcode) {
+				return c.ArgErr()
+			}
 		}
 
 		rc, ok := dns.StringToRcode[strings.ToUpper(rcode)]
@@ -42,7 +52,10 @@ func setup(c *caddy.Controller) error {
 		if _, ok := f.rules[rc]; ok {
 			return fmt.Errorf("rcode '%s' is specified more than once", rcode)
 		}
-		f.rules[rc] = u
+		f.rules[rc] = rule{original: original, proxyUpstream: u}
+		if original {
+			f.original = true
+		}
 	}
 
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
