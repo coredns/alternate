@@ -16,7 +16,6 @@ import (
 // if the plugin chain returns specific error messages.
 type Alternate struct {
 	Next     plugin.Handler
-	trace    plugin.Handler
 	rules    map[int]rule
 	original bool // At least one rule has "original" flag
 }
@@ -27,8 +26,8 @@ type rule struct {
 }
 
 // New initializes Alternate plugin
-func New(trace plugin.Handler) (f *Alternate) {
-	return &Alternate{trace: trace, rules: make(map[int]rule)}
+func New() (f *Alternate) {
+	return &Alternate{rules: make(map[int]rule)}
 }
 
 // ServeDNS implements the plugin.Handler interface.

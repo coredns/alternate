@@ -20,8 +20,7 @@ func init() {
 }
 
 func setup(c *caddy.Controller) error {
-	t := dnsserver.GetConfig(c).Handler("trace")
-	f := New(t)
+	a := New()
 
 	for c.Next() {
 		var (
@@ -49,22 +48,22 @@ func setup(c *caddy.Controller) error {
 			return plugin.Error("alternate", err)
 		}
 
-		if _, ok := f.rules[rc]; ok {
+		if _, ok := a.rules[rc]; ok {
 			return fmt.Errorf("rcode '%s' is specified more than once", rcode)
 		}
-		f.rules[rc] = rule{original: original, forward: u}
+		a.rules[rc] = rule{original: original, forward: u}
 		if original {
-			f.original = true
+			a.original = true
 		}
 	}
 
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
-		f.Next = next
-		return f
+		a.Next = next
+		return a
 	})
 
 	c.OnStartup(func() error {
-		for _, r := range f.rules {
+		for _, r := range a.rules {
 			if err := r.forward.OnStartup(); err != nil {
 				return err
 			}
@@ -73,7 +72,7 @@ func setup(c *caddy.Controller) error {
 	})
 
 	c.OnShutdown(func() error {
-		for _, r := range f.rules {
+		for _, r := range a.rules {
 			if err := r.forward.OnShutdown(); err != nil {
 				return err
 			}
