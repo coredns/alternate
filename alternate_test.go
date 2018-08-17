@@ -5,50 +5,38 @@ import (
 
 	"golang.org/x/net/context"
 
-	"github.com/coredns/coredns/plugin/forward"
 	"github.com/coredns/coredns/plugin/pkg/dnstest"
 	"github.com/coredns/coredns/plugin/test"
 
 	"github.com/miekg/dns"
 )
 
-type forwardWithServer struct {
-	s           *dnstest.Server
-	f           *forward.Forward
+// testHandler implements HandlerWithCallbacks to mock handler
+type testHandler struct {
+	rcode       int
 	called      int
 	lastIsEdns0 bool
 }
 
-// newServer sets up http server and forward plugin which uses the test server.
+// newTestHandler sets up http server and forward plugin which uses the test server.
 // After test finished Close() must be called to stop http server.
-func newServer(rcode int) *forwardWithServer {
-	ts := &forwardWithServer{}
-	ts.s = dnstest.NewServer(func(w dns.ResponseWriter, r *dns.Msg) {
-		ts.lastIsEdns0 = r.IsEdns0() != nil
-		ts.called++
-		ret := new(dns.Msg)
-		ret.SetReply(r)
-		ret.Answer = append(ret.Answer, test.A("example.org. IN A 127.0.0.1"))
-		ret.Rcode = rcode
-		w.WriteMsg(ret)
-	})
-	p := forward.NewProxy(ts.s.Addr, forward.DNS)
-	ts.f = forward.New()
-	ts.f.SetProxy(p)
-	return ts
+func newTestHandler(rcode int) *testHandler {
+	return &testHandler{rcode: rcode}
 }
 
-// Finished test http server and forward plugin's internal routines
-func (ts *forwardWithServer) Close() {
-	ts.f.Close()
-	ts.s.Close()
+func (h *testHandler) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Msg) (int, error) {
+	h.lastIsEdns0 = r.IsEdns0() != nil
+	h.called++
+	ret := new(dns.Msg)
+	ret.SetReply(r)
+	ret.Answer = append(ret.Answer, test.A("example.org. IN A 127.0.0.1"))
+	ret.Rcode = h.rcode
+	w.WriteMsg(ret)
+	return 0, nil
 }
-
-// Reset resets counters from last test case
-func (ts *forwardWithServer) Reset() {
-	ts.called = 0
-	ts.lastIsEdns0 = false
-}
+func (h *testHandler) Name() string      { return "testHandler" }
+func (h *testHandler) OnStartup() error  { return nil }
+func (h *testHandler) OnShutdown() error { return nil }
 
 // stubNextHandler is used to simulate a rewrite and forward plugin.
 // It returns a stub Handler that returns the rcode and err specified when invoked.
@@ -96,14 +84,6 @@ type alternateTestCase struct {
 }
 
 func TestAlternate(t *testing.T) {
-	// dummy Upstreams for servicing a specific rcode
-	srv := newServer(dns.RcodeRefused)
-	defer srv.Close()
-	testRules := map[int]rule{
-		dns.RcodeNXRrset:       {forward: srv.f},
-		dns.RcodeServerFailure: {forward: srv.f},
-	}
-
 	testCases := []alternateTestCase{
 		{
 			nextRcode:     dns.RcodeNXRrset,
@@ -130,12 +110,17 @@ func TestAlternate(t *testing.T) {
 	}
 
 	for testNum, tc := range testCases {
-		srv.Reset()
+		// mocked Forward for servicing a specific rcode
+		h := newTestHandler(dns.RcodeRefused)
+
 		handler := New()
 		// create stub handler to return the test rcode
 		handler.Next = stubNextHandler(tc.nextRcode, nil)
 		// add rules
-		handler.rules = testRules
+		handler.rules = map[int]rule{
+			dns.RcodeNXRrset:       {handler: h},
+			dns.RcodeServerFailure: {handler: h},
+		}
 
 		// Prepare query and make a call
 		rec, rcode, err := makeTestCall(handler)
@@ -153,22 +138,14 @@ func TestAlternate(t *testing.T) {
 		}
 
 		// Ensure that server was called required number of times
-		if srv.called != tc.called {
+		if h.called != tc.called {
 			t.Errorf("Test '%d': Server expected to be called %d time(s) but called %d times(s)",
-				testNum, tc.called, srv.called)
+				testNum, tc.called, h.called)
 		}
 	}
 }
 
 func TestAlternateMultipleCalls(t *testing.T) {
-	// dummy Upstreams for servicing a specific rcode
-	srv := newServer(dns.RcodeRefused)
-	defer srv.Close()
-	testRules := map[int]rule{
-		dns.RcodeNXRrset:       {forward: srv.f},
-		dns.RcodeServerFailure: {forward: srv.f},
-	}
-
 	testCases := []struct {
 		nextRcode int
 		called    int
@@ -179,12 +156,17 @@ func TestAlternateMultipleCalls(t *testing.T) {
 	}
 
 	for testNum, tc := range testCases {
-		srv.Reset()
+		// mocked Forward for servicing a specific rcode
+		h := newTestHandler(dns.RcodeRefused)
+
 		handler := New()
 		// create stub handler to return the test rcode
 		handler.Next = stubNextHandler(tc.nextRcode, nil)
 		// add rules
-		handler.rules = testRules
+		handler.rules = map[int]rule{
+			dns.RcodeNXRrset:       {handler: h},
+			dns.RcodeServerFailure: {handler: h},
+		}
 
 		// Prepare query and make 10 calls
 		for i := 0; i < 10; i++ {
@@ -192,22 +174,14 @@ func TestAlternateMultipleCalls(t *testing.T) {
 		}
 
 		// Ensure that server was called required number of times
-		if srv.called != tc.called {
+		if h.called != tc.called {
 			t.Errorf("Test '%d': Server expected to be called %d time(s) but called %d times(s)",
-				testNum, tc.called, srv.called)
+				testNum, tc.called, h.called)
 		}
 	}
 }
 
 func TestAlternateOriginal(t *testing.T) {
-	// dummy Upstreams for servicing a specific rcode
-	srv := newServer(dns.RcodeRefused)
-	defer srv.Close()
-	testRules := map[int]rule{
-		dns.RcodeNXRrset:       {original: true, forward: srv.f},
-		dns.RcodeServerFailure: {forward: srv.f},
-	}
-
 	testCases := []struct {
 		nextRcode int
 		isEdns0   bool
@@ -219,25 +193,30 @@ func TestAlternateOriginal(t *testing.T) {
 	}
 
 	for testNum, tc := range testCases {
-		srv.Reset()
+		// mocked Forward for servicing a specific rcode
+		h := newTestHandler(dns.RcodeRefused)
+
 		handler := New()
 		// One of rules has "original" flag set
 		handler.original = true
 		// create stub handler to return the test rcode
 		handler.Next = stubNextHandler(tc.nextRcode, nil)
 		// add rules
-		handler.rules = testRules
+		handler.rules = map[int]rule{
+			dns.RcodeNXRrset:       {original: true, handler: h},
+			dns.RcodeServerFailure: {handler: h},
+		}
 
 		// Prepare query and make a call
 		makeTestCall(handler)
 
 		// Ensure edns0 option has expected state
-		if tc.isEdns0 && srv.lastIsEdns0 != tc.isEdns0 {
-			t.Errorf("Test '%d': Server expected to recieve Edns0, but didn't", testNum)
-		}
-		if !tc.isEdns0 && srv.lastIsEdns0 != tc.isEdns0 {
-			t.Errorf("Test '%d': Server expected to recieve no Edns0, but received it",
-				testNum)
+		if h.lastIsEdns0 != tc.isEdns0 {
+			if tc.isEdns0 {
+				t.Errorf("Test '%d': Server expected to recieve Edns0, but didn't", testNum)
+			} else {
+				t.Errorf("Test '%d': Server not expected to recieve Edns0, but received it", testNum)
+			}
 		}
 	}
 }

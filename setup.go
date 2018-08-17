@@ -51,7 +51,7 @@ func setup(c *caddy.Controller) error {
 		if _, ok := a.rules[rc]; ok {
 			return fmt.Errorf("rcode '%s' is specified more than once", rcode)
 		}
-		a.rules[rc] = rule{original: original, forward: u}
+		a.rules[rc] = rule{original: original, handler: u}
 		if original {
 			a.original = true
 		}
@@ -64,7 +64,7 @@ func setup(c *caddy.Controller) error {
 
 	c.OnStartup(func() error {
 		for _, r := range a.rules {
-			if err := r.forward.OnStartup(); err != nil {
+			if err := r.handler.OnStartup(); err != nil {
 				return err
 			}
 		}
@@ -73,7 +73,7 @@ func setup(c *caddy.Controller) error {
 
 	c.OnShutdown(func() error {
 		for _, r := range a.rules {
-			if err := r.forward.OnShutdown(); err != nil {
+			if err := r.handler.OnShutdown(); err != nil {
 				return err
 			}
 		}

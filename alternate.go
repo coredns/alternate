@@ -7,8 +7,6 @@ import (
 	"github.com/coredns/coredns/plugin"
 	"github.com/coredns/coredns/plugin/pkg/nonwriter"
 
-	"github.com/coredns/coredns/plugin/forward"
-
 	"github.com/miekg/dns"
 )
 
@@ -22,7 +20,14 @@ type Alternate struct {
 
 type rule struct {
 	original bool
-	forward  *forward.Forward
+	handler  HandlerWithCallbacks
+}
+
+// HandlerWithCallbacks interface is made for handling the requests
+type HandlerWithCallbacks interface {
+	plugin.Handler
+	OnStartup() error
+	OnShutdown() error
 }
 
 // New initializes Alternate plugin
@@ -51,9 +56,9 @@ func (f Alternate) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 
 	if u, ok := f.rules[rulesIndex]; ok {
 		if u.original && originalRequest != nil {
-			return u.forward.ServeDNS(ctx, w, originalRequest)
+			return u.handler.ServeDNS(ctx, w, originalRequest)
 		}
-		return u.forward.ServeDNS(ctx, w, r)
+		return u.handler.ServeDNS(ctx, w, r)
 	}
 	if nw.Msg != nil {
 		w.WriteMsg(nw.Msg)
