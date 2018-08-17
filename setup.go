@@ -1,4 +1,4 @@
-package fallback
+package alternate
 
 import (
 	"fmt"
@@ -6,22 +6,21 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/proxy"
+	"github.com/coredns/coredns/plugin/forward"
 
 	"github.com/mholt/caddy"
 	"github.com/miekg/dns"
 )
 
 func init() {
-	caddy.RegisterPlugin("fallback", caddy.Plugin{
+	caddy.RegisterPlugin("alternate", caddy.Plugin{
 		ServerType: "dns",
 		Action:     setup,
 	})
 }
 
 func setup(c *caddy.Controller) error {
-	t := dnsserver.GetConfig(c).Handler("trace")
-	f := New(t)
+	a := New()
 
 	for c.Next() {
 		var (
@@ -44,23 +43,41 @@ func setup(c *caddy.Controller) error {
 			return fmt.Errorf("%s is not a valid rcode", rcode)
 		}
 
-		u, err := proxy.NewStaticUpstream(&c.Dispenser)
+		u, err := forward.ParseForwardStanza(&c.Dispenser)
 		if err != nil {
-			return plugin.Error("fallback", err)
+			return plugin.Error("alternate", err)
 		}
 
-		if _, ok := f.rules[rc]; ok {
+		if _, ok := a.rules[rc]; ok {
 			return fmt.Errorf("rcode '%s' is specified more than once", rcode)
 		}
-		f.rules[rc] = rule{original: original, proxyUpstream: u}
+		a.rules[rc] = rule{original: original, handler: u}
 		if original {
-			f.original = true
+			a.original = true
 		}
 	}
 
 	dnsserver.GetConfig(c).AddPlugin(func(next plugin.Handler) plugin.Handler {
-		f.Next = next
-		return f
+		a.Next = next
+		return a
+	})
+
+	c.OnStartup(func() error {
+		for _, r := range a.rules {
+			if err := r.handler.OnStartup(); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	c.OnShutdown(func() error {
+		for _, r := range a.rules {
+			if err := r.handler.OnShutdown(); err != nil {
+				return err
+			}
+		}
+		return nil
 	})
 
 	return nil

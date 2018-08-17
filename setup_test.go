@@ -1,4 +1,4 @@
-package fallback
+package alternate
 
 import (
 	"fmt"
@@ -13,54 +13,54 @@ type setupTestCase struct {
 	expectedError string
 }
 
-func TestSetupFallback(t *testing.T) {
+func TestSetupAlternate(t *testing.T) {
 	testCases := []setupTestCase{
 		{
-			config: `fallback REFUSED . 192.168.1.1:53`,
+			config: `alternate REFUSED . 192.168.1.1:53`,
 		},
 		{
-			config: `fallback SERVFAIL . 192.168.1.1:53`,
+			config: `alternate SERVFAIL . 192.168.1.1:53`,
 		},
 		{
-			config: `fallback NXDOMAIN . 192.168.1.1:53`,
+			config: `alternate NXDOMAIN . 192.168.1.1:53`,
 		},
 		{
-			config: `fallback original NXDOMAIN . 192.168.1.1:53`,
+			config: `alternate original NXDOMAIN . 192.168.1.1:53`,
 		},
 		{
-			config:        `fallback REFUSE . 192.168.1.1:53`,
+			config:        `alternate REFUSE . 192.168.1.1:53`,
 			expectedError: `is not a valid rcode`,
 		},
 		{
-			config:        `fallback SRVFAIL . 192.168.1.1:53`,
+			config:        `alternate SRVFAIL . 192.168.1.1:53`,
 			expectedError: `is not a valid rcode`,
 		},
 		{
-			config:        `fallback NODOMAIN . 192.168.1.1:53`,
+			config:        `alternate NODOMAIN . 192.168.1.1:53`,
 			expectedError: `is not a valid rcode`,
 		},
 		{
-			config:        `fallback original NODOMAIN . 192.168.1.1:53`,
+			config:        `alternate original NODOMAIN . 192.168.1.1:53`,
 			expectedError: `is not a valid rcode`,
 		},
 		{
-			config: `fallback REFUSED . 192.168.1.1:53 {
+			config: `alternate REFUSED . 192.168.1.1:53 {
 						max_fails 5
-						protocol grpc
+						force_tcp
 					}`,
 		},
 		{
-			config:        `fallback REFUSED . abc`,
+			config:        `alternate REFUSED . abc`,
 			expectedError: `not an IP address or file`,
 		},
 		{
-			config: `fallback REFUSED . 192.168.1.1:53
-					 fallback REFUSED . 192.168.1.2:53`,
+			config: `alternate REFUSED . 192.168.1.1:53
+					 alternate REFUSED . 192.168.1.2:53`,
 			expectedError: `specified more than once`,
 		},
 		{
-			config: `fallback REFUSED . 192.168.1.1:53
-					 fallback original REFUSED . 192.168.1.2:53`,
+			config: `alternate REFUSED . 192.168.1.1:53
+					 alternate original REFUSED . 192.168.1.2:53`,
 			expectedError: `specified more than once`,
 		},
 	}
