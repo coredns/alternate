@@ -18,8 +18,7 @@ type testHandler struct {
 	lastIsEdns0 bool
 }
 
-// newTestHandler sets up http server and forward plugin which uses the test server.
-// After test finished Close() must be called to stop http server.
+// newTestHandler sets up handler (forward plugin) mock. It returns rcode defined in parameter.
 func newTestHandler(rcode int) *testHandler {
 	return &testHandler{rcode: rcode}
 }
@@ -79,7 +78,7 @@ func makeTestCall(handler *Alternate) (*dnstest.Recorder, int, error) {
 // Test case for alternate
 type alternateTestCase struct {
 	nextRcode     int // rcode to be returned by the stub Handler
-	expectedRcode int // this is expected rcode by test forward plugin
+	expectedRcode int // this is expected rcode by test handler (forward plugin)
 	called        int // this is expected number of calls reached test alternate server
 }
 
