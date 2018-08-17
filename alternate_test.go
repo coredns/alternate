@@ -71,7 +71,7 @@ func stubNextHandler(rcode int, err error) test.Handler {
 	})
 }
 
-// Also it adds edns0 option to given request.
+// makeTestCall makes test call to handler
 func makeTestCall(handler *Alternate) (*dnstest.Recorder, int, error) {
 	// Prepare query and make a call
 	ctx := context.TODO()
