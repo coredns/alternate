@@ -191,6 +191,7 @@ func TestAlternateOriginal(t *testing.T) {
 		{nextRcode: dns.RcodeServerFailure, isEdns0: true},
 	}
 
+	//invalid
 	for testNum, tc := range testCases {
 		// mocked Forward for servicing a specific rcode
 		h := newTestHandler(dns.RcodeRefused)
