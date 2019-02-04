@@ -16,6 +16,7 @@ fmt:
 
 .PHONY: get
 get:
+	go get -v
 	@ # Not vendoring these, so external plugins compile, avoiding:
 	@ # cannot use c (type *"github.com/mholt/caddy".Controller) as type
 	@ # *"github.com/coredns/coredns/vendor/github.com/mholt/caddy".Controller like errors.
