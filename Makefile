@@ -16,7 +16,6 @@ fmt:
 
 .PHONY: get
 get:
-	go get -v
 	@ # Not vendoring these, so external plugins compile, avoiding:
 	@ # cannot use c (type *"github.com/mholt/caddy".Controller) as type
 	@ # *"github.com/coredns/coredns/vendor/github.com/mholt/caddy".Controller like errors.
@@ -30,6 +29,7 @@ get:
 	(cd $(GOPATH)/src/github.com/mholt/caddy              && git checkout -q v0.11.1)
 	(cd $(GOPATH)/src/github.com/miekg/dns                && git checkout -q v1.1.4)
 	(cd $(GOPATH)/src/github.com/prometheus/client_golang && git checkout -q v0.9.1)
+	go get -v
 
 .PHONY: test
 test:
