@@ -22,7 +22,7 @@ get:
 	(cd $(GOPATH)/src/github.com/mholt/caddy 2>/dev/null              && git checkout -q master 2>/dev/null || true)
 	(cd $(GOPATH)/src/github.com/miekg/dns 2>/dev/null                && git checkout -q master 2>/dev/null || true)
 	(cd $(GOPATH)/src/github.com/prometheus/client_golang 2>/dev/null && git checkout -q master 2>/dev/null || true)
-	go get -u github.com/mholt/caddy
+	go get -u github.com/caddyserver/caddy
 	go get -u github.com/miekg/dns
 	go get -u github.com/prometheus/client_golang/prometheus/promhttp
 	go get -u github.com/prometheus/client_golang/prometheus
