@@ -1,4 +1,4 @@
-module github.com/rsvalerio/alternate
+module github.com/coredns/alternate
 
 go 1.12
 
