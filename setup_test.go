@@ -68,6 +68,16 @@ func TestSetupAlternate(t *testing.T) {
 					 alternate original REFUSED . 192.168.1.2:53`,
 			expectedError: `specified more than once`,
 		},
+		{
+			config:        `alternate SERVFAIL, REFUSED . 192.168.1.1:53`,
+			expectedError: `is not a valid rcode`,
+		},
+		{
+			config: `alternate SERVFAIL,REFUSED . 192.168.1.1:53`,
+		},
+		{
+			config: `alternate original SERVFAIL,REFUSED . 192.168.1.1:53`,
+		},
 	}
 
 	for _, tc := range testCases {
