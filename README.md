@@ -9,6 +9,17 @@ Plugin *Alternate* is able to selectively forward the query to another upstream 
 The *alternate* plugin allows an alternate set of upstreams be specified which will be used
 if the plugin chain returns specific error messages. The *alternate* plugin utilizes the *forward* plugin (<https://coredns.io/plugins/forward>) to query the specified upstreams.
 
+> The *alternate* plugin supports only DNS protocol and random policy w/o additional *forward* parameters, so following directives will fail:
+
+```
+. {
+    forward . 8.8.8.8
+    alternate NXDOMAIN . tls://192.168.1.1:853 {
+        policy sequential
+    }
+}
+```
+
 As the name suggests, the purpose of the *alternate* is to allow a alternate when, for example,
 the desired upstreams became unavailable.
 
@@ -16,14 +27,13 @@ the desired upstreams became unavailable.
 
 ```
 {
-    alternate [original] RCODE FORWARD_PARAMS
+    alternate [original] RCODE . DNS_RESOLVERS
 }
 ```
 
 * **original** is optional flag. If it is set then alternate uses original request instead of potentially changed by other plugins
 * **RCODE** is the string representation of the error response code. The complete list of valid rcode strings are defined as `RcodeToString` in <https://github.com/miekg/dns/blob/master/msg.go>, examples of which are `SERVFAIL`, `NXDOMAIN` and `REFUSED`.
-* **FORWARD_PARAMS** accepts the same parameters as the *forward* plugin
-<https://coredns.io/plugins/forward>.
+* **DNS_RESOLVERS** accepts dns resolvers list.
 
 ## Examples
 
@@ -46,7 +56,7 @@ The following specify that `original` query will be forwarded to 192.168.1.1:53 
 ```
 . {
 	forward . 8.8.8.8
-    rewrite edns0 local set 0xffee 0x61626364
+	rewrite edns0 local set 0xffee 0x61626364
 	alternate original NXDOMAIN . 192.168.1.1:53
 	log
 }
@@ -66,19 +76,4 @@ Multiple alternates can be specified, as long as they serve unique error respons
     log
 }
 
-```
-
-### Additional forward parameters
-
-You can specify additional forward parameters for each of the alternate upstreams.
-
-```
-. {
-    forward . 8.8.8.8
-    alternate NXDOMAIN . 192.168.1.1:53 192.168.1.2:53 {
-        max_fails 5
-        force_tcp
-    }
-    log
-}
 ```
