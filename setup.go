@@ -6,7 +6,6 @@ import (
 
 	"github.com/coredns/coredns/core/dnsserver"
 	"github.com/coredns/coredns/plugin"
-	"github.com/coredns/coredns/plugin/forward"
 
 	"github.com/caddyserver/caddy"
 	"github.com/miekg/dns"
@@ -27,13 +26,13 @@ func setup(c *caddy.Controller) error {
 			original bool
 			rcode    string
 		)
-		if !c.Dispenser.Args(&rcode) {
+		if !c.Args(&rcode) {
 			return c.ArgErr()
 		}
 		if rcode == "original" {
 			original = true
 			// Reread parameter is not rcode. Get it again.
-			if !c.Dispenser.Args(&rcode) {
+			if !c.Args(&rcode) {
 				return c.ArgErr()
 			}
 		}
@@ -43,7 +42,7 @@ func setup(c *caddy.Controller) error {
 			return fmt.Errorf("%s is not a valid rcode", rcode)
 		}
 
-		u, err := forward.ParseForwardStanza(&c.Dispenser)
+		handler, err := initForward(c)
 		if err != nil {
 			return plugin.Error("alternate", err)
 		}
@@ -51,7 +50,7 @@ func setup(c *caddy.Controller) error {
 		if _, ok := a.rules[rc]; ok {
 			return fmt.Errorf("rcode '%s' is specified more than once", rcode)
 		}
-		a.rules[rc] = rule{original: original, handler: u}
+		a.rules[rc] = rule{original: original, handler: handler}
 		if original {
 			a.original = true
 		}

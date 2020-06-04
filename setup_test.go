@@ -48,6 +48,11 @@ func TestSetupAlternate(t *testing.T) {
 						max_fails 5
 						force_tcp
 					}`,
+			expectedError: `additional parameters not allowed`,
+		},
+		{
+			config:        `alternate REFUSED . tls://192.168.1.1:443`,
+			expectedError: `only dns transport allowed`,
 		},
 		{
 			config:        `alternate REFUSED . abc`,
