@@ -27,12 +27,12 @@ the desired upstreams became unavailable.
 
 ```
 {
-    alternate [original] RCODE . DNS_RESOLVERS
+    alternate [original] RCODE_1[,RCODE_2,RCODE_3...] . DNS_RESOLVERS
 }
 ```
 
 * **original** is optional flag. If it is set then alternate uses original request instead of potentially changed by other plugins
-* **RCODE** is the string representation of the error response code. The complete list of valid rcode strings are defined as `RcodeToString` in <https://github.com/miekg/dns/blob/master/msg.go>, examples of which are `SERVFAIL`, `NXDOMAIN` and `REFUSED`.
+* **RCODE** is the string representation of the error response code. The complete list of valid rcode strings are defined as `RcodeToString` in <https://github.com/miekg/dns/blob/master/msg.go>, examples of which are `SERVFAIL`, `NXDOMAIN` and `REFUSED`. At least one rcode is required, but multiple rcodes may be specified, delimited by commas.
 * **DNS_RESOLVERS** accepts dns resolvers list.
 
 ## Examples
@@ -71,8 +71,7 @@ Multiple alternates can be specified, as long as they serve unique error respons
 . {
     forward . 8.8.8.8
     alternate NXDOMAIN . 192.168.1.1:53
-    alternate REFUSED . 192.168.100.1:53
-    alternate original SERVFAIL . 192.168.100.1:53
+    alternate original SERVFAIL,REFUSED . 192.168.100.1:53
     log
 }
 
