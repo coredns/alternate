@@ -8,7 +8,6 @@ import (
 	"github.com/coredns/coredns/plugin"
 
 	"github.com/caddyserver/caddy"
-	"github.com/caddyserver/caddy/caddyfile"
 	"github.com/miekg/dns"
 )
 
@@ -24,7 +23,7 @@ func setup(c *caddy.Controller) error {
 
 	for c.Next() {
 		// shift cursor past alternate
-		if !c.Dispenser.Next() {
+		if !c.Next() {
 			return c.ArgErr()
 		}
 
@@ -34,11 +33,11 @@ func setup(c *caddy.Controller) error {
 			err      error
 		)
 
-		if original, err = getOriginal(&c.Dispenser); err != nil {
+		if original, err = getOriginal(c); err != nil {
 			return err
 		}
 
-		if rcodes, err = getRCodes(&c.Dispenser); err != nil {
+		if rcodes, err = getRCodes(c); err != nil {
 			return err
 		}
 
@@ -89,7 +88,7 @@ func setup(c *caddy.Controller) error {
 
 const original = "original"
 
-func getOriginal(c *caddyfile.Dispenser) (bool, error) {
+func getOriginal(c *caddy.Controller) (bool, error) {
 	if c.Val() == original {
 		// shift cursor past original
 		if !c.Next() {
@@ -101,7 +100,7 @@ func getOriginal(c *caddyfile.Dispenser) (bool, error) {
 	return false, nil
 }
 
-func getRCodes(c *caddyfile.Dispenser) ([]int, error) {
+func getRCodes(c *caddy.Controller) ([]int, error) {
 	in := strings.Split(c.Val(), ",")
 
 	rcodes := make(map[int]interface{}, len(in))
