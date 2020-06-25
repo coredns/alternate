@@ -16,6 +16,7 @@ type Alternate struct {
 	Next     plugin.Handler
 	rules    map[int]rule
 	original bool // At least one rule has "original" flag
+	handlers []HandlerWithCallbacks
 }
 
 type rule struct {
