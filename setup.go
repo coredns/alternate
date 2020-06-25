@@ -51,6 +51,7 @@ func setup(c *caddy.Controller) error {
 		if err != nil {
 			return plugin.Error("alternate", err)
 		}
+		a.handlers = append(a.handlers, handler)
 
 		for _, rcode := range rcodes {
 			a.rules[rcode] = rule{original: original, handler: handler}
@@ -65,18 +66,9 @@ func setup(c *caddy.Controller) error {
 		return a
 	})
 
-	c.OnStartup(func() error {
-		for _, r := range a.rules {
-			if err := r.handler.OnStartup(); err != nil {
-				return err
-			}
-		}
-		return nil
-	})
-
 	c.OnShutdown(func() error {
-		for _, r := range a.rules {
-			if err := r.handler.OnShutdown(); err != nil {
+		for _, handler := range a.handlers {
+			if err := handler.OnShutdown(); err != nil {
 				return err
 			}
 		}
