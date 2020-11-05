@@ -35,6 +35,10 @@ the desired upstreams became unavailable.
 * **RCODE** is the string representation of the error response code. The complete list of valid rcode strings are defined as `RcodeToString` in <https://github.com/miekg/dns/blob/master/msg.go>, examples of which are `SERVFAIL`, `NXDOMAIN` and `REFUSED`. At least one rcode is required, but multiple rcodes may be specified, delimited by commas.
 * **DNS_RESOLVERS** accepts dns resolvers list.
 
+## Building CoreDNS with Alternate
+
+When building CoreDNS with this plugin, _alternate_ should be positioned **before** _forward_ in `/plugin.cfg`.
+
 ## Examples
 
 ### Alternate to local DNS server
