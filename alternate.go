@@ -19,6 +19,10 @@ type Alternate struct {
 	handlers []HandlerWithCallbacks
 }
 
+// Use RCode that is out-of-range for any DNS response
+// RCodes can be any of 4 to 16 bits long
+const RcodeNoData int = -1
+
 type rule struct {
 	original bool
 	handler  HandlerWithCallbacks
@@ -55,6 +59,11 @@ func (f Alternate) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 		rulesIndex = nw.Msg.Rcode
 	}
 
+	// if rcode is SUCCESS, and no answer is given, use RcodeNoData as hint for negative response.
+	if rulesIndex == dns.RcodeSuccess && isEmpty(r) {
+		rulesIndex = RcodeNoData
+	}
+
 	if u, ok := f.rules[rulesIndex]; ok {
 		if u.original && originalRequest != nil {
 			return u.handler.ServeDNS(ctx, w, originalRequest)
@@ -69,3 +78,16 @@ func (f Alternate) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 
 // Name implements the Handler interface.
 func (f Alternate) Name() string { return "alternate" }
+
+func isEmpty(r *dns.Msg) bool {
+	if len(r.Answer) == 0 {
+		return true
+	}
+
+	for _, r := range r.Answer {
+		if r != nil {
+			return false
+		}
+	}
+	return true
+}
