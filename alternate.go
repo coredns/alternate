@@ -57,11 +57,10 @@ func (f Alternate) ServeDNS(ctx context.Context, w dns.ResponseWriter, r *dns.Ms
 	rulesIndex := rcode
 	if nw.Msg != nil {
 		rulesIndex = nw.Msg.Rcode
-	}
-
-	// if rcode is SUCCESS, and no answer is given, use RcodeNoData as hint for negative response.
-	if rulesIndex == dns.RcodeSuccess && isEmpty(r) {
-		rulesIndex = RcodeNoData
+		if rulesIndex == dns.RcodeSuccess && isEmpty(nw.Msg) {
+			// if rcode is SUCCESS, and no answer is given, use RcodeNoData as hint for negative response.
+			rulesIndex = RcodeNoData
+		}
 	}
 
 	if u, ok := f.rules[rulesIndex]; ok {
