@@ -101,7 +101,9 @@ func getRCodes(c *caddy.Controller) ([]int, error) {
 		var rc int
 		var ok bool
 
-		if rc, ok = dns.StringToRcode[strings.ToUpper(rcode)]; !ok {
+		if rcode = strings.ToUpper(rcode); rcode == "NODATA" {
+			rc = RcodeNoData
+		} else if rc, ok = dns.StringToRcode[rcode]; !ok {
 			return nil, fmt.Errorf("%s is not a valid rcode", rcode)
 		}
 
